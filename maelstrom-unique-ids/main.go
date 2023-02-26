@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sync/atomic"
 	"time"
 
 	maelstrom "github.com/jepsen-io/maelstrom/demo/go"
@@ -12,6 +13,17 @@ import (
 type writeMessageBody struct {
     maelstrom.MessageBody
     Id string `json:"id"`
+}
+
+type counter int32
+var c counter
+
+func (c *counter) inc() int32 {
+    return atomic.AddInt32((*int32)(c), 1)
+}
+
+func (c *counter) get() int32 {
+    return atomic.LoadInt32((*int32)(c))
 }
 
 func main() {
@@ -37,6 +49,8 @@ func main() {
 }
 
 func generateId(nid string) string {
+    count := c.get()
+    c.inc()
     now := time.Now()
-    return fmt.Sprintf("%s_%d", nid, now.UnixMicro())
+    return fmt.Sprintf("%d-%s-%d", now.UnixMilli(), nid, count)
 }
